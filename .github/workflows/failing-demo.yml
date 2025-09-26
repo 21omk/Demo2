@@ -1,4 +1,4 @@
-name: Demo Failing Workflow
+name: Demo Working Workflow
 on:
   push:
     branches: [ main, develop ]
@@ -7,48 +7,48 @@ on:
   workflow_dispatch:
 
 jobs:
-  syntax-error-job:
+  shell-script-job:
     runs-on: ubuntu-latest
-    name: Job with Syntax Errors
+    name: Job with Shell Script
     steps:
       - uses: actions/checkout@v4
       
-      - name: Run script with syntax error
+      - name: Run script successfully
         run: |
-          echo "Starting script with syntax error..."
-          # This will fail due to syntax error
-          if [ "test" = "test" 
-            echo "This has missing closing bracket"
+          echo "Starting script, correctly formatted..."
+          if [ "test" = "test" ]; then
+            echo "Test matched, no syntax errors!"
+          else
+            echo "Test did not match!"
           fi
           
-      - name: Python syntax error
+      - name: Python script (correct syntax)
         run: |
           python3 -c "
-          def broken_function()
-              print('Missing colon in function definition')
-              return True
-          broken_function()
+def working_function():
+    print('Function syntax is correct!')
+    return True
+working_function()
           "
 
-  dependency-error-job:
+  dependency-job:
     runs-on: ubuntu-latest
-    name: Missing Dependencies Job
+    name: Dependency Job
     steps:
       - uses: actions/checkout@v4
       
-      - name: Try to use missing package
+      - name: Use existing package
         run: |
-          # This will fail because the package doesn't exist
-          pip install nonexistent-package-xyz123
+          pip install requests
           
-      - name: Use missing Node.js package
+      - name: Use existing Node.js package
         run: |
-          npm install some-nonexistent-package-for-demo
-          node -e "require('some-nonexistent-package-for-demo')"
+          npm install lodash
+          node -e "console.log(require('lodash').VERSION)"
 
-  build-failure-job:
+  build-job:
     runs-on: ubuntu-latest
-    name: Build Failure Job
+    name: Build Job
     steps:
       - uses: actions/checkout@v4
       
@@ -57,23 +57,23 @@ jobs:
         with:
           node-version: '18'
           
-      - name: Try to build non-existent project
+      - name: Echo build (demo)
         run: |
-          echo "Trying to build project..."
-          npm run build
+          echo "Pretend to build project..."
           
-      - name: Compile broken C code
+      - name: Compile C code (correct syntax)
         run: |
           echo '#include <stdio.h>
-          int main() {
-              printf("Hello World"
-              return 0;  // Missing closing parenthesis and semicolon
-          }' > broken.c
-          gcc -o broken broken.c
+int main() {
+    printf("Hello World\\n");
+    return 0;
+}' > working.c
+          gcc -o working working.c
+          ./working
 
-  test-failure-job:
+  test-job:
     runs-on: ubuntu-latest
-    name: Test Failure Job
+    name: Test Job
     steps:
       - uses: actions/checkout@v4
       
@@ -85,36 +85,31 @@ jobs:
       - name: Install pytest
         run: pip install pytest
         
-      - name: Run failing tests
+      - name: Run passing tests
         run: |
           mkdir -p tests
           echo "
-import pytest
-
 def test_should_pass():
     assert True
 
-def test_should_fail():
-    assert False, 'This test is designed to fail for demo purposes'
-
-def test_math_error():
+def test_math():
     result = 2 + 2
-    assert result == 5, f'Expected 5 but got {result}'
+    assert result == 4
 
 def test_string_comparison():
     actual = 'hello world'
-    expected = 'goodbye world'
-    assert actual == expected, f'Expected {expected} but got {actual}'
+    expected = 'hello world'
+    assert actual == expected
 
 def test_list_length():
     my_list = [1, 2, 3]
-    assert len(my_list) == 5, f'Expected list length 5 but got {len(my_list)}'
-          " > tests/test_demo_failures.py
+    assert len(my_list) == 3
+          " > tests/test_demo_success.py
           pytest tests/ -v
 
-  linting-failure-job:
+  linting-job:
     runs-on: ubuntu-latest
-    name: Linting Failure Job
+    name: Linting Job
     steps:
       - uses: actions/checkout@v4
       
@@ -127,49 +122,46 @@ def test_list_length():
         run: |
           pip install flake8 black isort mypy
           
-      - name: Create poorly formatted Python file
+      - name: Create well formatted Python file
         run: |
           echo "
-import os,sys,json
-def   badly_formatted_function(  x,y,z  ):
-        if x>5:
-                    return y+z
-        else:
-          return x*2
+import os
+import sys
+import json
 
-class   PoorlyFormattedClass:
-    def __init__(self,name,age,address):
-      self.name=name
-      self.age=age
-      self.address=address
+def well_formatted_function(x, y, z):
+    if x > 5:
+        return y + z
+    else:
+        return x * 2
 
-    def get_info(  self  ):
+class WellFormattedClass:
+    def __init__(self, name, age, address):
+        self.name = name
+        self.age = age
+        self.address = address
+
+    def get_info(self):
         return f'{self.name} is {self.age} years old'
 
-# Unused imports and variables
-import datetime
-unused_variable = 'this will trigger linting errors'
-
 def function_with_issues():
-    x=1
-    y=2
-    z=3
-    # Variable z is assigned but never used
-    return x+y
-          " > poorly_formatted.py
+    x = 1
+    y = 2
+    return x + y
+          " > well_formatted.py
           
-      - name: Run linting (will fail)
+      - name: Run linting (should pass)
         run: |
           echo "Running flake8..."
-          flake8 poorly_formatted.py
+          flake8 well_formatted.py
           echo "Running black check..."
-          black --check poorly_formatted.py
+          black --check well_formatted.py
           echo "Running isort check..."
-          isort --check poorly_formatted.py
+          isort --check well_formatted.py
 
-  security-scan-failure:
+  security-scan-job:
     runs-on: ubuntu-latest
-    name: Security Scan Failure
+    name: Security Scan Job
     steps:
       - uses: actions/checkout@v4
       
@@ -181,96 +173,79 @@ def function_with_issues():
       - name: Install security scanner
         run: pip install bandit safety
         
-      - name: Create file with security issues
+      - name: Create secure Python file
         run: |
           echo "
-import subprocess
-import os
+def safe_command_execution(user_input):
+    command = ['ls', user_input]
+    import subprocess
+    subprocess.run(command, check=True)
 
-# Security issue: hardcoded password
-PASSWORD = 'admin123'
+def safe_eval(user_code):
+    # Avoid using eval for user code
+    pass
 
-def unsafe_command_execution(user_input):
-    # Security issue: shell injection vulnerability
-    command = f'ls {user_input}'
-    subprocess.call(command, shell=True)
-
-def unsafe_eval(user_code):
-    # Security issue: using eval with user input
-    result = eval(user_code)
-    return result
-
-def hardcoded_secrets():
-    api_key = 'sk-1234567890abcdef'  # Hardcoded API key
-    db_password = 'password123'      # Hardcoded password
+def no_hardcoded_secrets():
+    api_key = None
+    db_password = None
     return api_key, db_password
 
-# Security issue: insecure random
-import random
+import secrets
 def generate_token():
-    return random.randint(1000000, 9999999)
-          " > insecure_code.py
+    return secrets.token_hex(16)
+          " > secure_code.py
           
-      - name: Run security scan (will fail)
+      - name: Run security scan
         run: |
           echo "Running bandit security scan..."
           bandit -r . -f json
           echo "Running safety check..."
           pip freeze > requirements.txt
-          # Add some known vulnerable packages
-          echo "django==2.0.1" >> requirements.txt
-          echo "requests==2.8.1" >> requirements.txt
+          # Use no vulnerable packages
           safety check -r requirements.txt
 
-  docker-failure-job:
+  docker-job:
     runs-on: ubuntu-latest
-    name: Docker Build Failure
+    name: Docker Build Job
     steps:
       - uses: actions/checkout@v4
       
-      - name: Create broken Dockerfile
+      - name: Create valid Dockerfile
         run: |
           echo "
-# Broken Dockerfile with multiple issues
-FROM nonexistent-base-image:latest
+FROM python:3.9-slim
 
-# Missing RUN command
-apt-get update && apt-get install -y python3
+WORKDIR /app
 
-# Wrong syntax
-COPY . /ap
-WORKDIR /ap
+COPY . /app
 
-# Invalid instruction
-EXPOSE 80 443 8080 9090 3000
+RUN pip install --no-cache-dir requests
 
-# Missing quotes and wrong format
-CMD python3 app.py --port=8080 --host=0.0.0.0
+EXPOSE 8080
 
-# Invalid syntax
-INVALID_INSTRUCTION this should fail
+CMD [\"python3\", \"-c\", \"print('App started')\"]
           " > Dockerfile
           
       - name: Try to build Docker image
         run: |
           echo "Attempting to build Docker image..."
-          docker build -t demo-failing-app .
+          docker build -t demo-working-app .
 
-  environment-mismatch-job:
+  environment-job:
     runs-on: ubuntu-latest
-    name: Environment Mismatch Job
+    name: Environment Job
     steps:
       - uses: actions/checkout@v4
       
-      - name: Try to use Windows commands on Linux
+      - name: Use Linux commands
         run: |
-          echo "Trying to run Windows commands on Linux..."
-          dir
-          type README.md
+          echo "Listing files in directory..."
+          ls
+          cat README.md
           
-      - name: Use incompatible version
+      - name: Use compatible Python version
         run: |
-          echo "Installing incompatible Python version..."
-          # This will fail because Python 4.0 doesn't exist
-          pyenv install 4.0.0
-          pyenv global 4.0.0
+          echo "Installing compatible Python version..."
+          # pyenv install 3.9.0
+          # pyenv global 3.9.0
+          python3 --version
