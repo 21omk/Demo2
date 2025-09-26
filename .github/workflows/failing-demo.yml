@@ -24,12 +24,13 @@ jobs:
           
       - name: Python script (correct syntax)
         run: |
-          python3 -c "
+          echo "
 def working_function():
     print('Function syntax is correct!')
     return True
 working_function()
-          "
+" > script.py
+          python3 script.py
 
   dependency-job:
     runs-on: ubuntu-latest
