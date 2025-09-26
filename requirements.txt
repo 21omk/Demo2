@@ -1,0 +1,11 @@
+# Demo requirements file with intentional security vulnerabilities and missing packages
+requests==2.8.1  # Known vulnerability CVE-2018-18074
+django==2.0.1    # Known vulnerabilities
+flask==0.12.2    # Old version with vulnerabilities
+pyyaml==3.12     # Known vulnerability CVE-2017-18342
+jinja2==2.8      # Old version with vulnerabilities
+urllib3==1.21.1  # Known vulnerabilities
+nonexistent-package==1.0.0  # This package doesn't exist
+another-missing-package==2.5.0  # This package doesn't exist either
+pytest>=6.0.0   # This one exists and should work
+numpy>=1.20.0    # This one exists

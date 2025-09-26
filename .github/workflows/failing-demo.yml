@@ -1,0 +1,173 @@
+name: Demo Working Workflow
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  shell-script-job:
+    runs-on: ubuntu-latest
+    name: Job with Shell Script
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run script successfully
+        run: |
+          echo "Starting script, correctly formatted..."
+          if [ "test" = "test" ]; then
+            echo "Test matched, no syntax errors!"
+          else
+            echo "Test did not match!"
+          fi
+          
+      - name: Python script (correct syntax)
+        run: |
+          printf 'def working_function():\n    print('"'"'Function syntax is correct!'"'"')\n    return True\nworking_function()\n' > script.py
+          python3 script.py
+
+  dependency-job:
+    runs-on: ubuntu-latest
+    name: Dependency Job
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Use existing package
+        run: |
+          pip install requests
+          
+      - name: Use existing Node.js package
+        run: |
+          npm install lodash
+          node -e "console.log(require('lodash').VERSION)"
+
+  build-job:
+    runs-on: ubuntu-latest
+    name: Build Job
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Echo build (demo)
+        run: |
+          echo "Pretend to build project..."
+          
+      - name: Compile C code (correct syntax)
+        run: |
+          printf '#include <stdio.h>\nint main() {\n    printf("Hello World\\n");\n    return 0;\n}' > working.c
+          gcc -o working working.c
+          ./working
+
+  test-job:
+    runs-on: ubuntu-latest
+    name: Test Job
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: Install pytest
+        run: pip install pytest
+        
+      - name: Run passing tests
+        run: |
+          mkdir -p tests
+          printf 'def test_should_pass():\n    assert True\n\ndef test_math():\n    result = 2 + 2\n    assert result == 4\n\ndef test_string_comparison():\n    actual = '"'"'hello world'"'"'\n    expected = '"'"'hello world'"'"'\n    assert actual == expected\n\ndef test_list_length():\n    my_list = [1, 2, 3]\n    assert len(my_list) == 3\n' > tests/test_demo_success.py
+          pytest tests/ -v
+
+  linting-job:
+    runs-on: ubuntu-latest
+    name: Linting Job
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: Install linting tools
+        run: |
+          pip install flake8 black isort mypy
+          
+      - name: Create well formatted Python file
+        run: |
+          printf 'import os\nimport sys\nimport json\n\ndef well_formatted_function(x, y, z):\n    if x > 5:\n        return y + z\n    else:\n        return x * 2\n\nclass WellFormattedClass:\n    def __init__(self, name, age, address):\n        self.name = name\n        self.age = age\n        self.address = address\n\n    def get_info(self):\n        return f'"'"'{self.name} is {self.age} years old'"'"'\n\ndef function_with_issues():\n    x = 1\n    y = 2\n    return x + y\n' > well_formatted.py
+          
+      - name: Run linting (should pass)
+        run: |
+          echo "Running flake8..."
+          flake8 well_formatted.py
+          echo "Running black check..."
+          black --check well_formatted.py
+          echo "Running isort check..."
+          isort --check well_formatted.py
+
+  security-scan-job:
+    runs-on: ubuntu-latest
+    name: Security Scan Job
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: Install security scanner
+        run: pip install bandit safety
+        
+      - name: Create secure Python file
+        run: |
+          printf 'def safe_command_execution(user_input):\n    command = ['"'"'ls'"'"', user_input]\n    import subprocess\n    subprocess.run(command, check=True)\n\ndef safe_eval(user_code):\n    # Avoid using eval for user code\n    pass\n\ndef no_hardcoded_secrets():\n    api_key = None\n    db_password = None\n    return api_key, db_password\n\nimport secrets\ndef generate_token():\n    return secrets.token_hex(16)\n' > secure_code.py
+          
+      - name: Run security scan
+        run: |
+          echo "Running bandit security scan..."
+          bandit -r . -f json
+          echo "Running safety check..."
+          pip freeze > requirements.txt
+          # Use no vulnerable packages
+          safety check -r requirements.txt
+
+  docker-job:
+    runs-on: ubuntu-latest
+    name: Docker Build Job
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create valid Dockerfile
+        run: |
+          printf 'FROM python:3.9-slim\n\nWORKDIR /app\n\nCOPY . /app\n\nRUN pip install --no-cache-dir requests\n\nEXPOSE 8080\n\nCMD ["python3", "-c", "print('"'"'App started'"'"')"]\n' > Dockerfile
+          
+      - name: Try to build Docker image
+        run: |
+          echo "Attempting to build Docker image..."
+          docker build -t demo-working-app .
+
+  environment-job:
+    runs-on: ubuntu-latest
+    name: Environment Job
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Use Linux commands
+        run: |
+          echo "Listing files in directory..."
+          ls
+          cat README.md
+          
+      - name: Use compatible Python version
+        run: |
+          echo "Installing compatible Python version..."
+          # pyenv install 3.9.0
+          # pyenv global 3.9.0
+          python3 --version
