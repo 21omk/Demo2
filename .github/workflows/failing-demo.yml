@@ -1,0 +1,276 @@
+name: Demo Failing Workflow
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  syntax-error-job:
+    runs-on: ubuntu-latest
+    name: Job with Syntax Errors
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run script with syntax error
+        run: |
+          echo "Starting script with syntax error..."
+          # This will fail due to syntax error
+          if [ "test" = "test" 
+            echo "This has missing closing bracket"
+          fi
+          
+      - name: Python syntax error
+        run: |
+          python3 -c "
+          def broken_function()
+              print('Missing colon in function definition')
+              return True
+          broken_function()
+          "
+
+  dependency-error-job:
+    runs-on: ubuntu-latest
+    name: Missing Dependencies Job
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Try to use missing package
+        run: |
+          # This will fail because the package doesn't exist
+          pip install nonexistent-package-xyz123
+          
+      - name: Use missing Node.js package
+        run: |
+          npm install some-nonexistent-package-for-demo
+          node -e "require('some-nonexistent-package-for-demo')"
+
+  build-failure-job:
+    runs-on: ubuntu-latest
+    name: Build Failure Job
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Try to build non-existent project
+        run: |
+          echo "Trying to build project..."
+          npm run build
+          
+      - name: Compile broken C code
+        run: |
+          echo '#include <stdio.h>
+          int main() {
+              printf("Hello World"
+              return 0;  // Missing closing parenthesis and semicolon
+          }' > broken.c
+          gcc -o broken broken.c
+
+  test-failure-job:
+    runs-on: ubuntu-latest
+    name: Test Failure Job
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: Install pytest
+        run: pip install pytest
+        
+      - name: Run failing tests
+        run: |
+          mkdir -p tests
+          echo "
+import pytest
+
+def test_should_pass():
+    assert True
+
+def test_should_fail():
+    assert False, 'This test is designed to fail for demo purposes'
+
+def test_math_error():
+    result = 2 + 2
+    assert result == 5, f'Expected 5 but got {result}'
+
+def test_string_comparison():
+    actual = 'hello world'
+    expected = 'goodbye world'
+    assert actual == expected, f'Expected {expected} but got {actual}'
+
+def test_list_length():
+    my_list = [1, 2, 3]
+    assert len(my_list) == 5, f'Expected list length 5 but got {len(my_list)}'
+          " > tests/test_demo_failures.py
+          pytest tests/ -v
+
+  linting-failure-job:
+    runs-on: ubuntu-latest
+    name: Linting Failure Job
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: Install linting tools
+        run: |
+          pip install flake8 black isort mypy
+          
+      - name: Create poorly formatted Python file
+        run: |
+          echo "
+import os,sys,json
+def   badly_formatted_function(  x,y,z  ):
+        if x>5:
+                    return y+z
+        else:
+          return x*2
+
+class   PoorlyFormattedClass:
+    def __init__(self,name,age,address):
+      self.name=name
+      self.age=age
+      self.address=address
+
+    def get_info(  self  ):
+        return f'{self.name} is {self.age} years old'
+
+# Unused imports and variables
+import datetime
+unused_variable = 'this will trigger linting errors'
+
+def function_with_issues():
+    x=1
+    y=2
+    z=3
+    # Variable z is assigned but never used
+    return x+y
+          " > poorly_formatted.py
+          
+      - name: Run linting (will fail)
+        run: |
+          echo "Running flake8..."
+          flake8 poorly_formatted.py
+          echo "Running black check..."
+          black --check poorly_formatted.py
+          echo "Running isort check..."
+          isort --check poorly_formatted.py
+
+  security-scan-failure:
+    runs-on: ubuntu-latest
+    name: Security Scan Failure
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+          
+      - name: Install security scanner
+        run: pip install bandit safety
+        
+      - name: Create file with security issues
+        run: |
+          echo "
+import subprocess
+import os
+
+# Security issue: hardcoded password
+PASSWORD = 'admin123'
+
+def unsafe_command_execution(user_input):
+    # Security issue: shell injection vulnerability
+    command = f'ls {user_input}'
+    subprocess.call(command, shell=True)
+
+def unsafe_eval(user_code):
+    # Security issue: using eval with user input
+    result = eval(user_code)
+    return result
+
+def hardcoded_secrets():
+    api_key = 'sk-1234567890abcdef'  # Hardcoded API key
+    db_password = 'password123'      # Hardcoded password
+    return api_key, db_password
+
+# Security issue: insecure random
+import random
+def generate_token():
+    return random.randint(1000000, 9999999)
+          " > insecure_code.py
+          
+      - name: Run security scan (will fail)
+        run: |
+          echo "Running bandit security scan..."
+          bandit -r . -f json
+          echo "Running safety check..."
+          pip freeze > requirements.txt
+          # Add some known vulnerable packages
+          echo "django==2.0.1" >> requirements.txt
+          echo "requests==2.8.1" >> requirements.txt
+          safety check -r requirements.txt
+
+  docker-failure-job:
+    runs-on: ubuntu-latest
+    name: Docker Build Failure
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create broken Dockerfile
+        run: |
+          echo "
+# Broken Dockerfile with multiple issues
+FROM nonexistent-base-image:latest
+
+# Missing RUN command
+apt-get update && apt-get install -y python3
+
+# Wrong syntax
+COPY . /ap
+WORKDIR /ap
+
+# Invalid instruction
+EXPOSE 80 443 8080 9090 3000
+
+# Missing quotes and wrong format
+CMD python3 app.py --port=8080 --host=0.0.0.0
+
+# Invalid syntax
+INVALID_INSTRUCTION this should fail
+          " > Dockerfile
+          
+      - name: Try to build Docker image
+        run: |
+          echo "Attempting to build Docker image..."
+          docker build -t demo-failing-app .
+
+  environment-mismatch-job:
+    runs-on: ubuntu-latest
+    name: Environment Mismatch Job
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Try to use Windows commands on Linux
+        run: |
+          echo "Trying to run Windows commands on Linux..."
+          dir
+          type README.md
+          
+      - name: Use incompatible version
+        run: |
+          echo "Installing incompatible Python version..."
+          # This will fail because Python 4.0 doesn't exist
+          pyenv install 4.0.0
+          pyenv global 4.0.0
